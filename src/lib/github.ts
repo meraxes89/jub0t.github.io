@@ -123,3 +123,10 @@ export function formatBytes(n: number): string {
 export function formatCount(n: number): string {
 	return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n);
 }
+
+/** Everything a page of the site needs from GitHub, fetched once and shared
+ *  by the nav, the layout and the landing body — one API round per build. */
+export async function getPageData(): Promise<{ repo: Repo; release: Release; stars: string }> {
+	const [repo, release] = await Promise.all([getRepo(), getLatestRelease()]);
+	return { repo, release, stars: formatCount(repo.stars) };
+}

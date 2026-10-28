@@ -3,12 +3,20 @@ import { Image } from 'astro:assets';
 import { Icon } from 'astro-icon/components';
 import logo from '../assets/logo.png';
 import Container from './Container.astro';
-import { site, nav } from '../data/site';
+import { site } from '../data/site';
+import type { UI } from '../i18n';
 
 interface Props {
 	stars: string;
+	ui: UI;
 }
-const { stars } = Astro.props;
+const { stars, ui } = Astro.props;
+
+const nav = [
+	{ href: '#features', label: ui.nav.features },
+	{ href: '#how', label: ui.nav.how },
+	{ href: '#download', label: ui.nav.download },
+];
 ---
 
 <header class="sticky top-0 z-20 border-b border-line bg-white/90 backdrop-blur">
@@ -23,6 +31,16 @@ const { stars } = Astro.props;
 		</nav>
 
 		<div class="flex items-center gap-2">
+			<button
+				id="lang-button"
+				type="button"
+				aria-haspopup="dialog"
+				aria-label={ui.picker.open}
+				title={ui.picker.open}
+				class="inline-flex size-9 items-center justify-center gap-2 rounded-md border border-line text-muted transition-colors hover:border-ink hover:text-ink"
+			>
+				<Icon name="lucide:languages" class="size-4" />
+			</button>
 			<a
 				href={site.repoUrl}
 				rel="noopener"
@@ -30,7 +48,7 @@ const { stars } = Astro.props;
 			>
 				<Icon name="simple-icons:github" class="size-4" />
 				<span class="hidden sm:inline">GitHub</span>
-				<span class="flex items-center gap-1 border-l border-line pl-2 font-mono text-xs text-muted">
+				<span class="flex items-center gap-1 border-s border-line ps-2 font-mono text-xs text-muted">
 					<Icon name="lucide:star" class="size-3" />
 					{stars}
 				</span>
@@ -40,7 +58,7 @@ const { stars } = Astro.props;
 				class="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
 			>
 				<Icon name="lucide:download" class="size-4" />
-				Download
+				{ui.nav.downloadCta}
 			</a>
 		</div>
 	</Container>

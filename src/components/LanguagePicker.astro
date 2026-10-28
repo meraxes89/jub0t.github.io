@@ -1,0 +1,153 @@
+---
+// The language switch: a globe in the nav opens the full picker, and a
+// first visit to a translated page — before any choice has been made —
+// gets a quiet offer to switch to English or to any other language.
+// Every option is a plain link first, so it works without the script.
+import { Icon } from 'astro-icon/components';
+import { locales, pathFor, type Locale } from '../i18n/config';
+import type { UI } from '../i18n';
+
+interface Props {
+	locale: Locale;
+	ui: UI;
+}
+const { locale, ui } = Astro.props;
+
+const fill = (s: string, vars: Record<string, string>) =>
+	s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);
+---
+
+{locale.code !== 'en' && (
+	<dialog
+		id="lang-offer"
+		class="m-auto w-[min(92vw,26rem)] rounded-2xl border border-line bg-white p-0 text-ink backdrop:bg-ink/30"
+		aria-labelledby="lang-offer-title"
+	>
+		<div class="p-6">
+			<h2 id="lang-offer-title" class="text-base font-semibold">{fill(ui.picker.title, { count: String(locales.length) })}</h2>
+			<p class="mt-1 text-sm text-muted">
+				{ui.picker.current}: {locale.native}
+			</p>
+			<div class="mt-5 flex flex-col gap-2">
+				<a
+					href="/"
+					data-lang="en"
+					class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+				>
+					<Icon name="lucide:arrow-right" class="size-4 rtl:-scale-x-100" />
+					{ui.picker.switchToEnglish}
+				</a>
+				<button
+					type="button"
+					data-stay
+					class="inline-flex h-10 items-center justify-center rounded-md border border-line px-4 text-sm font-medium transition-colors hover:border-ink"
+				>
+					{fill(ui.picker.stay, { language: locale.native })}
+				</button>
+				<button
+					type="button"
+					data-all
+					class="inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium text-muted transition-colors hover:text-ink"
+				>
+					<Icon name="lucide:languages" class="size-4" />
+					{ui.picker.all}
+				</button>
+			</div>
+		</div>
+	</dialog>
+)}
+
+<dialog
+	id="lang-picker"
+	class="m-auto w-[min(92vw,30rem)] rounded-2xl border border-line bg-white p-0 text-ink backdrop:bg-ink/30"
+	aria-labelledby="lang-picker-title"
+>
+	<div class="p-6">
+		<div class="flex items-start justify-between gap-4">
+			<div>
+				<h2 id="lang-picker-title" class="text-base font-semibold">{ui.picker.title}</h2>
+				<p class="mt-1 text-sm text-muted">{fill(ui.picker.subtitle, { count: String(locales.length) })}</p>
+			</div>
+			<button
+				type="button"
+				data-close
+				aria-label={ui.picker.close}
+				class="flex size-8 shrink-0 items-center justify-center rounded-md border border-line text-muted transition-colors hover:border-ink hover:text-ink"
+			>
+				<Icon name="lucide:x" class="size-4" />
+			</button>
+		</div>
+		<ul class="mt-5 grid max-h-72 grid-cols-2 gap-1 overflow-y-auto sm:grid-cols-3" role="list">
+			{
+				locales.map((l) => (
+					<li>
+						<a
+							href={pathFor(l.code)}
+							data-lang={l.code}
+							aria-current={l.code === locale.code ? 'true' : undefined}
+							class:list={[
+								'flex h-14 flex-col items-center justify-center gap-0.5 rounded-lg border text-center text-sm transition-colors',
+								l.code === locale.code ? 'border-accent bg-surface font-semibold' : 'border-line hover:border-ink',
+							]}
+							lang={l.code}
+							dir={l.dir}
+						>
+							<span>{l.native}</span>
+							<span class="text-[10px] font-normal text-faint" dir="ltr">{l.code}</span>
+						</a>
+					</li>
+				))
+			}
+		</ul>
+	</div>
+</dialog>
+
+<script is:inline define:vars={{ current: locale.code }}>
+	(function () {
+		var KEY = 'concat.lang';
+		function stored() {
+			try { return localStorage.getItem(KEY); } catch (e) { return null; }
+		}
+		function remember(code) {
+			try { localStorage.setItem(KEY, code); } catch (e) { /* private mode: carry on unremembered */ }
+		}
+
+		var offer = document.getElementById('lang-offer');
+		var picker = document.getElementById('lang-picker');
+		var globe = document.getElementById('lang-button');
+
+		// The offer asks once, and only before any choice has been made.
+		// Escaping or closing it stores nothing, so a later visit may ask
+		// again — but an explicit choice is remembered for good.
+		if (offer && !stored()) {
+			setTimeout(function () { offer.showModal(); }, 600);
+		}
+
+		if (globe) globe.addEventListener('click', function () { picker.showModal(); });
+
+		// Choosing a language remembers it, then the link goes where it
+		// always pointed — the anchor carries the destination, the script
+		// only the memory.
+		document.querySelectorAll('[data-lang]').forEach(function (el) {
+			el.addEventListener('click', function () { remember(el.getAttribute('data-lang')); });
+		});
+
+		if (offer) {
+			var stay = offer.querySelector('[data-stay]');
+			if (stay) stay.addEventListener('click', function () {
+				remember(current);
+				offer.close();
+			});
+			var all = offer.querySelector('[data-all]');
+			if (all) all.addEventListener('click', function () {
+				offer.close();
+				picker.showModal();
+			});
+		}
+
+		if (picker) {
+			var close = picker.querySelector('[data-close]');
+			if (close) close.addEventListener('click', function () { picker.close(); });
+		}
+	})();
+</script>

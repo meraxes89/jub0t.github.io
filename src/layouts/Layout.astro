@@ -2,41 +2,63 @@
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import LanguagePicker from '../components/LanguagePicker.astro';
 import { site } from '../data/site';
+import { locales, defaultLocale, baseAliases, type Locale } from '../i18n/config';
+import { dictFor, type UI } from '../i18n';
 
 interface Props {
+	locale?: Locale;
+	stars: string;
 	title?: string;
 	description?: string;
-	stars: string;
 }
 
 const {
+	locale = defaultLocale,
 	stars,
-	title = `${site.name} — ${site.tagline}`,
-	description = 'Concat is everything you use CapCut for, without the watermarks, paywalls or subscriptions. Native, offline, open source, for macOS, Windows and Linux.',
+	title,
+	description,
 } = Astro.props;
 
-const canonical = new URL(Astro.url.pathname, Astro.site);
+const ui: UI = dictFor(locale.code);
+
+// Every language's address for this page, for crawlers and for the picker.
+const alternates = locales.map((l) => ({
+	code: l.code,
+	href: new URL(l.code === defaultLocale.code ? '/' : `/${l.code}/`, Astro.site).href,
+}));
+
+// The map the first-visit script matches a browser against: every code we
+// speak, plus the tags a browser may report for a language we carry only in
+// one regional form.
+const detect: Record<string, string> = {};
+for (const l of locales) detect[l.code.toLowerCase()] = l.code;
+for (const [tag, code] of Object.entries(baseAliases)) detect[tag] = code;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={locale.code} dir={locale.dir}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>{title}</title>
-		<meta name="description" content={description} />
-		<link rel="canonical" href={canonical} />
+		<title>{title ?? ui.meta.title}</title>
+		<meta name="description" content={description ?? ui.meta.description} />
+		<link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
 		<link rel="icon" type="image/png" href="/favicon.png" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="theme-color" content="#ffffff" />
 
+		{alternates.map((a) => <link rel="alternate" hreflang={a.code} href={a.href} />)}
+		<link rel="alternate" hreflang="x-default" href={new URL('/', Astro.site).href} />
+
 		<meta property="og:type" content="website" />
-		<meta property="og:title" content={title} />
-		<meta property="og:description" content={description} />
-		<meta property="og:url" content={canonical} />
+		<meta property="og:title" content={title ?? ui.meta.title} />
+		<meta property="og:description" content={description ?? ui.meta.description} />
+		<meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
 		<meta property="og:image" content={new URL('/og.png', Astro.site)} />
+		<meta property="og:locale" content={locale.code} />
 		<meta name="twitter:card" content="summary_large_image" />
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -45,12 +67,38 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 			rel="stylesheet"
 			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
 		/>
+
+		{
+			/* A first visit to the bare page goes straight to the language the
+			   browser asks for, before anything paints. Any page someone
+			   arrives at — or a language they have chosen — is left alone. */
+			locale.code === defaultLocale.code && (
+				<script is:inline define:vars={{ detect, home: defaultLocale.code }}>
+					(function () {
+						if (location.pathname !== '/') return;
+						try {
+							if (localStorage.getItem('concat.lang')) return;
+						} catch (e) { /* unreadable storage: fall through */ }
+						var asked = navigator.languages || [navigator.language || ''];
+						for (var i = 0; i < asked.length; i++) {
+							var tag = asked[i].toLowerCase();
+							var hit = detect[tag] || detect[tag.split('-')[0]];
+							if (hit) {
+								if (hit !== home) location.replace('/' + hit + '/' + location.hash);
+								return;
+							}
+						}
+					})();
+				</script>
+			)
+		}
 	</head>
 	<body class="bg-white font-sans text-ink">
-		<Nav stars={stars} />
+		<Nav stars={stars} ui={ui} />
 		<main>
 			<slot />
 		</main>
-		<Footer />
+		<Footer ui={ui} />
+		<LanguagePicker locale={locale} ui={ui} />
 	</body>
 </html>

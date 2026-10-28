@@ -1,0 +1,25 @@
+---
+// The landing page in every language it speaks, each at its own address:
+// `/es/`, `/ur/`, `/zh-Hans/`… Static HTML, so a crawler and a reader
+// without JavaScript both get the whole page in that language, and the
+// language links between them are plain anchors.
+import Layout from '../../layouts/Layout.astro';
+import Landing from '../../components/Landing.astro';
+import { locales, localeByCode } from '../../i18n/config';
+import { dictFor } from '../../i18n';
+import { getPageData } from '../../lib/github';
+
+export function getStaticPaths() {
+	return locales
+		.filter((l) => l.code !== 'en')
+		.map((l) => ({ params: { locale: l.code } }));
+}
+
+const locale = localeByCode(Astro.params.locale)!;
+const ui = dictFor(locale.code);
+const { repo, release, stars } = await getPageData();
+---
+
+<Layout stars={stars} locale={locale}>
+	<Landing ui={ui} repo={repo} release={release} />
+</Layout>

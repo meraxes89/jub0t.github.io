@@ -1,0 +1,403 @@
+---
+// The landing page, whole: everything between the nav and the footer, in
+// whichever language the route asks for. One body, thirteen tongues — the
+// page component picks the locale, this draws it.
+import { Image } from 'astro:assets';
+import { Icon } from 'astro-icon/components';
+import Container from './Container.astro';
+import Section from './Section.astro';
+import Card from './Card.astro';
+import Visual from './Visual.astro';
+import Waveform from './Waveform.astro';
+import screenshot from '../assets/screenshot-dark.png';
+import { site, platformIcons } from '../data/site';
+import { groupByPlatform, formatBytes, formatCount, type Release, type Repo } from '../lib/github';
+import type { UI } from '../i18n';
+
+interface Props {
+	ui: UI;
+	repo: Repo;
+	release: Release;
+}
+const { ui, repo, release } = Astro.props;
+
+const platforms = groupByPlatform(release.assets);
+const sums = release.assets.find((a) => a.name === 'SHA256SUMS');
+
+const stats = [
+	{ icon: 'lucide:star', value: formatCount(repo.stars), label: ui.stats.stars },
+	{ icon: 'lucide:git-fork', value: formatCount(repo.forks), label: ui.stats.forks },
+	{ icon: 'lucide:languages', value: '12', label: ui.stats.languages },
+	{ icon: 'lucide:scale', value: 'AGPL-3.0', label: ui.stats.license },
+];
+
+const platformIcon: Record<string, string> = {
+	macOS: 'simple-icons:apple',
+	Windows: 'simple-icons:windows',
+	Linux: 'simple-icons:linux',
+	Android: 'simple-icons:android',
+	'iOS / iPadOS': 'simple-icons:ios',
+};
+
+// Icons for lists whose words live in the dictionaries but whose pictures
+// are the same in every language.
+const stepIcons = ['lucide:folder-open', 'lucide:scissors', 'lucide:upload'];
+const promiseIcons = ['lucide:wifi-off', 'lucide:user-x', 'lucide:badge-check', 'lucide:scale'];
+const toolIcons = ['lucide:scissors', 'lucide:square-split-horizontal', 'lucide:merge', 'lucide:gauge'];
+
+const ruler = ['00:00', '00:02', '00:04', '00:06', '00:08', '00:10', '00:12'];
+const link = 'underline decoration-line underline-offset-4 hover:text-ink';
+---
+
+<!-- Hero -->
+<Container class="pt-16 pb-12 sm:pt-24">
+	<div class="mx-auto max-w-3xl text-center">
+		<a
+			href={release.url}
+			rel="noopener"
+			class="inline-flex items-center gap-2 rounded-full border border-line py-1 pr-3 pl-1.5 text-xs font-medium text-muted transition-colors hover:border-ink hover:text-ink"
+		>
+			<span class="rounded-full bg-accent px-2 py-0.5 font-mono text-ink">v{release.version}</span>
+			{ui.hero.badge}
+			<Icon name="lucide:arrow-right" class="size-3 rtl:-scale-x-100" />
+		</a>
+		<h1 class="mt-6 text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
+			{ui.hero.heading}
+		</h1>
+		<p class="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-balance text-muted">
+			{ui.hero.sub}
+		</p>
+		<div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+			<a
+				href="#download"
+				class="inline-flex h-11 items-center gap-2 rounded-md bg-ink px-5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+			>
+				<Icon name="lucide:download" class="size-4" />
+				{ui.hero.download}
+			</a>
+			<a
+				href={site.repoUrl}
+				rel="noopener"
+				class="inline-flex h-11 items-center gap-2 rounded-md border border-line px-5 text-sm font-medium transition-colors hover:border-ink"
+			>
+				<Icon name="simple-icons:github" class="size-4" />
+				{ui.hero.source}
+			</a>
+		</div>
+		<ul class="mt-8 flex items-center justify-center gap-5 text-faint">
+			{
+				platformIcons.map((p) => (
+					<li title={p.label}>
+						<Icon name={p.icon} class="size-5" />
+						<span class="sr-only">{p.label}</span>
+					</li>
+				))
+			}
+		</ul>
+	</div>
+</Container>
+
+<!-- Screenshot -->
+<Container class="pb-16">
+	<figure class="overflow-hidden rounded-xl border border-line bg-neutral-900 shadow-[0_1px_0_rgb(0_0_0/0.04),0_24px_48px_-24px_rgb(0_0_0/0.25)]">
+		<Image
+			src={screenshot}
+			alt={ui.hero.screenshotAlt}
+			widths={[800, 1200, 1600, 2400]}
+			sizes="(min-width: 1152px) 1104px, calc(100vw - 48px)"
+			format="webp"
+			loading="eager"
+			class="block w-full"
+		/>
+	</figure>
+</Container>
+
+<!-- Stats -->
+<Container class="pb-20">
+	<ul class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+		{
+			stats.map((s) => (
+				<li class="flex items-center gap-4 rounded-xl border border-line bg-surface px-5 py-4">
+					<Icon name={s.icon} class="size-5 shrink-0 text-muted" />
+					<div>
+						<div class="text-xl font-semibold tracking-tight tabular-nums">{s.value}</div>
+						<div class="text-xs text-muted">{s.label}</div>
+					</div>
+				</li>
+			))
+		}
+	</ul>
+</Container>
+
+<!-- Features -->
+<Section id="features" index="01" label={ui.features.label}>
+	<div class="max-w-2xl">
+		<h2 class="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+			{ui.features.heading}
+		</h2>
+	</div>
+
+	<div class="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+		<!-- Timeline: large card -->
+		<Card
+			icon="lucide:layers"
+			title={ui.features.timeline.title}
+			body={ui.features.timeline.body}
+			class="md:col-span-2"
+		>
+			<Visual class="h-56 p-4 font-mono text-[10px]">
+				<!-- The mock keeps the editor's own left-to-right layout in every
+				     language, the way a screenshot would. -->
+				<div class="flex h-full flex-col gap-2" dir="ltr">
+					<div class="flex gap-2 border-b border-neutral-800 pb-1.5 text-neutral-500">
+						<span class="w-16 shrink-0">{ui.features.timeline.timeline}</span>
+						<div class="flex flex-1 justify-between">{ruler.map((t) => <span>{t}</span>)}</div>
+					</div>
+					<div class="relative flex flex-1 flex-col gap-2">
+						<span class="absolute inset-y-0 left-[46%] w-px bg-accent"></span>
+						<span class="absolute top-0 left-[46%] size-2 -translate-x-1/2 rotate-45 bg-accent"></span>
+						<div class="flex flex-1 gap-2">
+							<span class="w-16 shrink-0 self-center text-neutral-400">{ui.features.timeline.captions}</span>
+							<div class="relative flex-1"><span class="absolute inset-y-1 left-[30%] w-[36%] rounded-sm border border-rose-500/60 bg-rose-500/25"></span></div>
+						</div>
+						<div class="flex flex-1 gap-2">
+							<span class="w-16 shrink-0 self-center text-neutral-400">{ui.features.timeline.voice}</span>
+							<div class="relative flex-1 gap-1">
+								<span class="h-full w-[30%] overflow-hidden rounded-sm border border-amber-500/60 bg-amber-500/20 px-1 text-amber-500"><Waveform bars={34} /></span>
+								<span class="h-full w-[22%] overflow-hidden rounded-sm border border-amber-500/60 bg-amber-500/20 px-1 text-amber-500"><Waveform bars={24} /></span>
+								<span class="h-full w-[28%] overflow-hidden rounded-sm border border-amber-500/60 bg-amber-500/20 px-1 text-amber-500"><Waveform bars={30} /></span>
+							</div>
+						</div>
+						<div class="flex flex-1 gap-2">
+							<span class="w-16 shrink-0 self-center text-neutral-400">{ui.features.timeline.video}</span>
+							<div class="flex flex-1 gap-1">
+								{[18, 26, 14, 30].map((w) => <span class="h-full rounded-sm border border-sky-500/60 bg-sky-500/25" style={`width:${w}%`} />)}
+							</div>
+						</div>
+					</div>
+				</div>
+			</Visual>
+		</Card>
+
+		<!-- Captions -->
+		<Card
+			icon="lucide:captions"
+			title={ui.features.captions.title}
+			body={ui.features.captions.body}
+		>
+			<Visual class="flex h-56 flex-col items-center justify-center gap-4 p-6">
+				<div class="flex items-center gap-2 rounded-full border border-neutral-800 px-2.5 py-1 font-mono text-[10px] text-neutral-400">
+					<Icon name="lucide:hard-drive" class="size-3" />
+					{ui.features.captions.transcribing}
+				</div>
+				<div class="rounded-md bg-white px-4 py-2 text-lg font-semibold tracking-tight text-ink">{ui.features.captions.line}</div>
+				<div class="flex flex-wrap justify-center gap-1.5 font-mono text-[10px] text-neutral-500" dir="ltr">
+					{['00:06.1', '00:06.4', '00:07.0'].map((t) => <span class="rounded-sm px-1.5 py-0.5">{t}</span>)}
+				</div>
+			</Visual>
+		</Card>
+
+		<!-- Cutting toolkit -->
+		<Card
+			icon="lucide:scissors"
+			title={ui.features.cutting.title}
+			body={ui.features.cutting.body}
+		>
+			<Visual class="grid h-56 grid-cols-2 gap-2 p-4">
+				{
+					ui.features.cutting.tools.map((t, i) => (
+						<div class="flex flex-col items-center justify-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900">
+							<Icon name={toolIcons[i]} class="size-5" />
+							<span class="text-xs text-neutral-400">{t.label}</span>
+						</div>
+					))
+				}
+			</Visual>
+		</Card>
+
+		<!-- Voice -->
+		<Card
+			icon="lucide:audio-lines"
+			title={ui.features.voice.title}
+			body={ui.features.voice.body}
+		>
+			<Visual class="flex h-56 flex-col justify-between p-5">
+				<div class="flex flex-wrap gap-1.5">
+					{
+						ui.features.voice.voices.map((v, i) => (
+							<span class:list={['rounded-md border px-2.5 py-1 text-xs', i === 0 ? 'border-accent bg-accent text-ink' : 'border-neutral-800 text-neutral-300']}>{v}</span>
+						))
+					}
+				</div>
+				<div class="h-16 text-accent"><Waveform bars={56} /></div>
+				<div class="flex justify-between font-mono text-[10px] text-neutral-500" dir="ltr">
+					<span>{ui.features.voice.amount}</span><span>{ui.features.voice.pitch}</span>
+				</div>
+			</Visual>
+		</Card>
+
+		<!-- Titles -->
+		<Card
+			icon="lucide:type"
+			title={ui.features.titles.title}
+			body={ui.features.titles.body}
+		>
+			<Visual class="flex h-56 items-center justify-center p-6">
+				<div class="grid grid-cols-3 gap-3">
+					<span class="flex size-16 items-center justify-center rounded-lg border border-neutral-800 text-2xl font-bold">Aa</span>
+					<span class="flex size-16 items-center justify-center rounded-lg border border-neutral-800 bg-white text-2xl font-black text-ink">Aa</span>
+					<span class="flex size-16 items-center justify-center rounded-lg border border-neutral-800 bg-accent text-2xl font-semibold text-ink italic">Aa</span>
+					<span class="flex size-16 items-center justify-center rounded-lg border border-neutral-800 font-mono text-2xl">Aa</span>
+					<span class="flex size-16 items-center justify-center rounded-lg border border-neutral-800 text-2xl font-light tracking-widest">Aa</span>
+					<span class="flex size-16 items-center justify-center rounded-lg border border-dashed border-neutral-700 text-neutral-500"><Icon name="lucide:layout-template" class="size-5" /></span>
+				</div>
+			</Visual>
+		</Card>
+
+		<!-- Native -->
+		<Card
+			icon="lucide:cpu"
+			title={ui.features.native.title}
+			body={ui.features.native.body}
+			class="lg:col-span-2"
+		>
+			<Visual class="flex h-56 flex-col items-center justify-center gap-6 p-6">
+				<div class="flex gap-4">
+					{platformIcons.map((p) => <span class="flex size-11 items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900"><Icon name={p.icon} class="size-5" /></span>)}
+				</div>
+				<div class="flex items-center gap-2 rounded-full border border-neutral-800 px-3 py-1 font-mono text-[10px] text-neutral-400">
+					<Icon name="simple-icons:rust" class="size-3" />
+					{ui.features.native.badge}
+				</div>
+			</Visual>
+		</Card>
+	</div>
+</Section>
+
+<!-- How it works -->
+<Section id="how" index="02" label={ui.how.label} class="bg-surface">
+	<div class="max-w-2xl">
+		<h2 class="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{ui.how.heading}</h2>
+	</div>
+	<ol class="mt-10 grid gap-4 md:grid-cols-3">
+		{
+			ui.how.steps.map((s, i) => (
+				<li class="relative rounded-2xl border border-line bg-white p-6">
+					<div class="flex items-center justify-between">
+						<span class="flex size-10 items-center justify-center rounded-lg bg-ink text-white">
+							<Icon name={stepIcons[i]} class="size-5" />
+						</span>
+						<span class="font-mono text-xs text-faint">0{i + 1}</span>
+					</div>
+					<h3 class="mt-5 text-lg font-semibold">{s.title}</h3>
+					<p class="mt-1.5 text-sm leading-relaxed text-muted">{s.body}</p>
+					{i < ui.how.steps.length - 1 && (
+						<Icon name="lucide:arrow-right" class="absolute top-1/2 -end-5 z-10 hidden size-6 -translate-y-1/2 rounded-full border border-line bg-white p-1 text-faint md:block rtl:-scale-x-100" />
+					)}
+				</li>
+			))
+		}
+	</ol>
+
+	<ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+		{
+			ui.how.promises.map((p, i) => (
+				<li class="flex gap-4 rounded-2xl border border-line bg-white p-5">
+					<Icon name={promiseIcons[i]} class="mt-0.5 size-5 shrink-0" />
+					<div>
+						<h3 class="text-sm font-semibold">{p.title}</h3>
+						<p class="mt-1 text-sm leading-relaxed text-muted">{p.body}</p>
+					</div>
+				</li>
+			))
+		}
+	</ul>
+</Section>
+
+<!-- Download -->
+<Section id="download" index="03" label={ui.download.label}>
+	<div class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+		<div class="max-w-2xl">
+			<h2 class="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+				Concat {release.version}
+			</h2>
+			<p class="mt-3 text-lg text-muted">{ui.download.selfContained}</p>
+		</div>
+		<a href={release.url} rel="noopener" class="inline-flex items-center gap-1.5 font-mono text-xs text-faint hover:text-ink">
+			{ui.download.released} {release.publishedAt} · {ui.download.releaseNotes}
+			<Icon name="lucide:arrow-right" class="size-3 rtl:-scale-x-100" />
+		</a>
+	</div>
+
+	<ul class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+		{
+			platforms.map((row) => (
+				<li class="flex flex-col rounded-2xl border border-line p-5 transition-colors hover:border-neutral-400">
+					<div class="flex items-center gap-3">
+						<span class="flex size-10 items-center justify-center rounded-lg border border-line bg-surface">
+							<Icon name={platformIcon[row.platform]} class="size-5" />
+						</span>
+						<div class="flex-1">
+							<h3 class="font-semibold">{row.platform}</h3>
+							<p class="text-xs text-faint">{row.status === 'tested' ? ui.download.tested : ui.download.untested}</p>
+						</div>
+					</div>
+					<div class="mt-5 flex flex-wrap gap-2">
+						{row.builds.map((b) => (
+							<a
+								href={b.asset.url}
+								class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md bg-ink px-3 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-neutral-800"
+							>
+								<Icon name="lucide:download" class="size-3.5" />
+								{b.arch}
+								{b.asset.size > 0 && <span class="font-mono text-xs font-normal text-neutral-400">{formatBytes(b.asset.size)}</span>}
+							</a>
+						))}
+					</div>
+				</li>
+			))
+		}
+		<li class="flex flex-col justify-between rounded-2xl border border-line bg-surface p-5">
+			<div class="flex items-center gap-3">
+				<span class="flex size-10 items-center justify-center rounded-lg border border-line bg-white">
+					<Icon name="lucide:file-check" class="size-5" />
+				</span>
+				<div>
+					<h3 class="font-semibold">{ui.download.verify}</h3>
+					<p class="text-xs text-faint">{ui.download.checksums}</p>
+				</div>
+			</div>
+			<div class="mt-5 flex flex-wrap gap-2 text-sm">
+				<a href={sums?.url ?? release.url} class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md bg-ink px-3 font-medium text-white hover:bg-neutral-800">
+					<Icon name="lucide:hash" class="size-3.5" /> SHA256SUMS
+				</a>
+				<a href={`${site.repoUrl}/releases/tag/nightly`} rel="noopener" class="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md bg-ink px-3 font-medium text-white hover:bg-neutral-800">
+					<Icon name="lucide:moon" class="size-3.5" /> {ui.download.nightly}
+				</a>
+			</div>
+		</li>
+	</ul>
+
+	<div class="mt-4 grid gap-4 lg:grid-cols-2">
+		<div class="flex gap-4 rounded-2xl border border-line p-5">
+			<Icon name="lucide:terminal" class="mt-0.5 size-5 shrink-0" />
+			<div class="min-w-0 flex-1 text-sm">
+				<p class="font-semibold">{ui.download.mac.title}</p>
+				<p class="mt-1 text-muted">{ui.download.mac.body}</p>
+				<pre dir="ltr" class="mt-3 overflow-x-auto rounded-md border border-line bg-surface px-3 py-2 text-start font-mono text-xs"><code>xattr -dr com.apple.quarantine /Applications/Concat.app</code></pre>
+			</div>
+		</div>
+		<div class="flex gap-4 rounded-2xl border border-line p-5">
+			<Icon name="lucide:bug" class="mt-0.5 size-5 shrink-0" />
+			<div class="text-sm">
+				<p class="font-semibold">{ui.download.bugs.title}</p>
+				<p class="mt-1 text-muted">
+					{ui.download.bugs.body}{' '}
+					<a href={`${site.repoUrl}/issues`} rel="noopener" class={link}>{ui.download.bugs.openIssue}</a>{' '}
+					{ui.download.bugs.or}{' '}
+					<a href={site.discordUrl} rel="noopener" class={link}>{ui.download.bugs.askDiscord}</a>.
+				</p>
+			</div>
+		</div>
+	</div>
+</Section>
